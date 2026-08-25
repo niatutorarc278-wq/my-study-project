@@ -190,14 +190,35 @@ export const AppProvider = ({ children }) => {
   };
 
   const isChapterUnlocked = (course, chapterId) => {
-    if (!course || !course.units) return true;
-    const allChapters = course.units.flatMap((u) => u.chapters || []);
+    if (!course || !course.enrolled) return false;
+    const units = course.units || (course.curriculum ? course.curriculum.map((sec, idx) => ({
+      chapters: (sec.lessons || []).map((les, lIdx) => ({
+        id: `${course.id}-u${idx + 1}-ch${lIdx + 1}`
+      }))
+    })) : []);
+    const allChapters = units.flatMap((u) => u.chapters || []);
     const index = allChapters.findIndex((ch) => ch.id === chapterId);
     if (index <= 0) return true;
     const courseCompletedList = completedChapters[course.id] || [];
     const isDone = courseCompletedList.includes(chapterId);
     const prevDone = courseCompletedList.includes(allChapters[index - 1].id);
     return isDone || prevDone;
+  };
+
+  const getCourseProgress = (course) => {
+    if (!course) return 0;
+    const completedList = completedChapters[course.id] || [];
+    const units = course.units || (course.curriculum ? course.curriculum.map((sec, idx) => ({
+      id: `unit-${idx + 1}`,
+      chapters: (sec.lessons || []).map((les, lIdx) => ({
+        id: `${course.id}-u${idx + 1}-ch${lIdx + 1}`
+      }))
+    })) : []);
+    const allChapters = units.flatMap((u) => u.chapters || []);
+    if (allChapters.length > 0) {
+      return Math.min(100, Math.round((completedList.length / allChapters.length) * 100));
+    }
+    return course.progress || 0;
   };
 
   // User Actions
@@ -554,6 +575,7 @@ export const AppProvider = ({ children }) => {
         completedChapters,
         completeChapter,
         isChapterUnlocked,
+        getCourseProgress,
         refreshData: syncDataWithBackend,
         logout
       }}

@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 
 export const CourseCatalogPage = () => {
-  const { courses, currentUser, showToast } = useApp();
+  const { courses, currentUser, getCourseProgress, showToast } = useApp();
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -179,7 +179,7 @@ export const CourseCatalogPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {filteredCourses.map((course) => {
             const isSaved = wishlist.includes(course.id);
-            const progress = course.progress || (course.enrolled ? 45 : 0);
+            const progress = getCourseProgress(course);
             const isDiscounted = course.originalPrice && course.originalPrice > course.price;
             const discountPercent = isDiscounted
               ? Math.round(((course.originalPrice - course.price) / course.originalPrice) * 100)
@@ -305,19 +305,28 @@ export const CourseCatalogPage = () => {
                   {/* Card Pricing & CTA Action Footer */}
                   <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
                     <div>
-                      {isDiscounted && (
-                        <div className="flex items-center gap-1.5 text-[10px]">
-                          <span className="text-slate-400 line-through">
-                            ₹{course.originalPrice.toLocaleString()}
+                      {course.enrolled ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-black">
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                          Purchased
+                        </span>
+                      ) : (
+                        <>
+                          {isDiscounted && (
+                            <div className="flex items-center gap-1.5 text-[10px]">
+                              <span className="text-slate-400 line-through">
+                                ₹{course.originalPrice.toLocaleString()}
+                              </span>
+                              <span className="font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-1.5 py-0.2 rounded border border-rose-200 dark:border-rose-800/60">
+                                {discountPercent}% OFF
+                              </span>
+                            </div>
+                          )}
+                          <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight">
+                            ₹{course.price.toLocaleString()}
                           </span>
-                          <span className="font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-1.5 py-0.2 rounded border border-rose-200 dark:border-rose-800/60">
-                            {discountPercent}% OFF
-                          </span>
-                        </div>
+                        </>
                       )}
-                      <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight">
-                        ₹{course.price.toLocaleString()}
-                      </span>
                     </div>
 
                     <div>

@@ -30,7 +30,8 @@ import {
 } from 'lucide-react';
 
 export const AdminPaymentsPage = () => {
-  const { payments, updatePaymentStatus, showToast } = useApp();
+  const { payments = [], updateTransactionStatus, updatePaymentStatus: updatePaymentStatusCtx, showToast } = useApp();
+  const updatePaymentStatus = updateTransactionStatus || updatePaymentStatusCtx || (() => {});
 
   // Filters & View State
   const [statusFilter, setStatusFilter] = useState('All');
@@ -50,7 +51,7 @@ export const AdminPaymentsPage = () => {
   const totalRevenue = useMemo(() => {
     return payments
       .filter((p) => p.status === 'Completed')
-      .reduce((acc, curr) => acc + curr.amount, 0);
+      .reduce((acc, curr) => acc + (curr.amount || 0), 0);
   }, [payments]);
 
   const completedCount = useMemo(
@@ -69,36 +70,46 @@ export const AdminPaymentsPage = () => {
   const totalDiscountSavings = useMemo(() => {
     return payments
       .filter((p) => p.status === 'Completed')
-      .reduce((acc, curr) => acc + ((curr.originalPrice || curr.amount) - curr.amount), 0);
+      .reduce((acc, curr) => acc + ((curr.originalPrice || curr.amount || 0) - (curr.amount || 0)), 0);
   }, [payments]);
 
   // Filtered & Sorted Payments
   const filteredPayments = useMemo(() => {
-    return payments
+    return (payments || [])
       .filter((p) => {
-        const matchesStatus = statusFilter === 'All' || p.status === statusFilter;
+        const pStatus = p.status || '';
+        const pMethod = p.paymentMethod || p.payment_method || '';
+        const pUser = p.user || p.user_name || '';
+        const pEmail = p.userEmail || p.user_email || '';
+        const pTitle = p.courseTitle || p.course_title || '';
+        const pCoupon = p.couponCode || p.coupon_code || '';
+        const pId = p.id || '';
+
+        const matchesStatus = statusFilter === 'All' || pStatus === statusFilter;
 
         let matchesMethod = true;
         if (methodFilter !== 'All') {
-          matchesMethod = p.paymentMethod.toLowerCase().includes(methodFilter.toLowerCase());
+          matchesMethod = pMethod.toLowerCase().includes(methodFilter.toLowerCase());
         }
 
         const query = searchQuery.toLowerCase().trim();
         const matchesSearch =
           !query ||
-          p.id.toLowerCase().includes(query) ||
-          p.user.toLowerCase().includes(query) ||
-          p.userEmail.toLowerCase().includes(query) ||
-          p.courseTitle.toLowerCase().includes(query) ||
-          (p.couponCode && p.couponCode.toLowerCase().includes(query));
+          pId.toLowerCase().includes(query) ||
+          pUser.toLowerCase().includes(query) ||
+          pEmail.toLowerCase().includes(query) ||
+          pTitle.toLowerCase().includes(query) ||
+          pCoupon.toLowerCase().includes(query);
 
         return matchesStatus && matchesMethod && matchesSearch;
       })
       .sort((a, b) => {
-        if (sortBy === 'newest') return new Date(b.date) - new Date(a.date);
-        if (sortBy === 'oldest') return new Date(a.date) - new Date(b.date);
-        if (sortBy === 'amount-high') return b.amount - a.amount;
-        if (sortBy === 'amount-low') return a.amount - b.amount;
+        const aDate = a.date ? new Date(a.date) : 0;
+        const bDate = b.date ? new Date(b.date) : 0;
+        if (sortBy === 'newest') return bDate - aDate;
+        if (sortBy === 'oldest') return aDate - bDate;
+        if (sortBy === 'amount-high') return (b.amount || 0) - (a.amount || 0);
+        if (sortBy === 'amount-low') return (a.amount || 0) - (b.amount || 0);
         return 0;
       });
   }, [payments, statusFilter, methodFilter, searchQuery, sortBy]);
@@ -604,10 +615,10 @@ export const AdminPaymentsPage = () => {
                         <td className="py-3.5 px-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <div className="w-6 h-6 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-[10px] shadow-xs flex-shrink-0">
-                              {p.user.charAt(0)}
+                              {(p.user || p.user_name || 'Student').charAt(0)}
                             </div>
                             <span className="font-bold text-slate-900 dark:text-slate-100">
-                              {p.user}
+                              {p.user || p.user_name || 'Student'}
                             </span>
                           </div>
                         </td>
@@ -615,15 +626,15 @@ export const AdminPaymentsPage = () => {
                         <td className="py-3.5 px-4 whitespace-nowrap text-slate-500 font-mono text-[11px]">
                           <span className="flex items-center gap-1">
                             <Mail className="w-3 h-3 text-slate-400" />
-                            {p.userEmail}
+                            {p.userEmail || p.user_email || ''}
                           </span>
                         </td>
 
                         <td className="py-3.5 px-4 whitespace-nowrap max-w-[240px]">
-                          <div className="flex items-center gap-1.5" title={p.courseTitle}>
+                          <div className="flex items-center gap-1.5" title={p.courseTitle || p.course_title}>
                             <BookOpen className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
                             <span className="font-bold text-slate-900 dark:text-slate-100 truncate">
-                              {p.courseTitle}
+                              {p.courseTitle || p.course_title || 'Course'}
                             </span>
                           </div>
                         </td>
@@ -631,7 +642,7 @@ export const AdminPaymentsPage = () => {
                         <td className="py-3.5 px-4 whitespace-nowrap">
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-[11px]">
                             <CreditCard className="w-3 h-3 text-indigo-500" />
-                            {p.paymentMethod}
+                            {p.paymentMethod || p.payment_method || 'Credit Card'}
                           </span>
                         </td>
 
@@ -647,7 +658,7 @@ export const AdminPaymentsPage = () => {
                         </td>
 
                         <td className="py-3.5 px-4 text-right whitespace-nowrap font-black text-slate-900 dark:text-slate-100 text-sm">
-                          ₹{p.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          ₹{(p.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
 
                         <td className="py-3.5 px-4 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
@@ -807,15 +818,15 @@ export const AdminPaymentsPage = () => {
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 text-white font-black text-sm flex items-center justify-center shadow-md shadow-indigo-500/20 flex-shrink-0">
-                          {p.user.charAt(0)}
+                          {(p.user || p.user_name || 'Student').charAt(0)}
                         </div>
                         <div className="min-w-0">
                           <h5 className="font-extrabold text-sm text-slate-900 dark:text-slate-100 truncate">
-                            {p.user}
+                            {p.user || p.user_name || 'Student'}
                           </h5>
                           <p className="text-xs text-slate-400 truncate flex items-center gap-1 font-mono">
                             <Mail className="w-3 h-3 text-slate-400" />
-                            {p.userEmail}
+                            {p.userEmail || p.user_email || ''}
                           </p>
                         </div>
                       </div>
@@ -832,12 +843,12 @@ export const AdminPaymentsPage = () => {
                         <BookOpen className="w-4 h-4 text-indigo-500 mt-0.5 flex-shrink-0" />
                         <div className="min-w-0 flex-1">
                           <p className="font-bold text-xs text-slate-900 dark:text-slate-100 leading-snug">
-                            {p.courseTitle}
+                            {p.courseTitle || p.course_title || 'Course'}
                           </p>
                           <div className="flex items-center gap-2 mt-2 flex-wrap">
                             <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-md border border-slate-200/60 dark:border-slate-700/60">
                               <CreditCard className="w-3 h-3 text-indigo-500" />
-                              {p.paymentMethod}
+                              {p.paymentMethod || p.payment_method || 'Credit Card'}
                             </span>
 
                             {p.couponCode && p.couponCode !== 'None' && (
@@ -858,7 +869,7 @@ export const AdminPaymentsPage = () => {
                           Net Paid Amount
                         </p>
                         <p className="font-black text-slate-900 dark:text-slate-100 text-lg tracking-tight">
-                          ₹{p.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          ₹{(p.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </p>
                       </div>
 

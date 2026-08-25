@@ -83,9 +83,10 @@ export const AdminDashboardPage = () => {
   // Calculate timeframe filtered payments
   const filteredPayments = useMemo(() => {
     return payments.filter((p) => {
-      if (timeframe === 'today') return p.date.includes('2026-08-19') || p.date.includes('2026-08-18');
+      const pDate = p.date || '';
+      if (timeframe === 'today') return pDate.includes('2026-08-19') || pDate.includes('2026-08-18');
       if (timeframe === 'week') return true; // mock data has recent transactions
-      if (timeframe === 'month') return p.date.includes('2026-08');
+      if (timeframe === 'month') return pDate.includes('2026-08');
       return true;
     });
   }, [payments, timeframe]);
@@ -94,13 +95,13 @@ export const AdminDashboardPage = () => {
   const totalRevenue = useMemo(() => {
     return filteredPayments
       .filter((p) => p.status === 'Completed')
-      .reduce((sum, p) => sum + p.amount, 0);
+      .reduce((sum, p) => sum + (p.amount || 0), 0);
   }, [filteredPayments]);
 
   const totalDiscountSaved = useMemo(() => {
     return filteredPayments
       .filter((p) => p.status === 'Completed')
-      .reduce((sum, p) => sum + (p.originalPrice - p.amount), 0);
+      .reduce((sum, p) => sum + ((p.originalPrice || 0) - (p.amount || 0)), 0);
   }, [filteredPayments]);
 
   const activeLearnersCount = useMemo(() => {
@@ -150,7 +151,7 @@ export const AdminDashboardPage = () => {
     payments.forEach((p) => {
       const match = courses.find((c) => c.title === p.courseTitle);
       if (match && map[match.category] && p.status === 'Completed') {
-        map[match.category].revenue += p.amount;
+        map[match.category].revenue += (p.amount || 0);
       }
     });
 
@@ -168,8 +169,9 @@ export const AdminDashboardPage = () => {
   const paymentMethodsStats = useMemo(() => {
     const map = { 'UPI / NetBanking': 0, 'Credit Card': 0, 'Razorpay': 0 };
     payments.forEach((p) => {
-      if (p.paymentMethod.includes('UPI')) map['UPI / NetBanking'] += 1;
-      else if (p.paymentMethod.includes('Card')) map['Credit Card'] += 1;
+      const method = p.paymentMethod || '';
+      if (method.includes('UPI')) map['UPI / NetBanking'] += 1;
+      else if (method.includes('Card')) map['Credit Card'] += 1;
       else map['Razorpay'] += 1;
     });
     const total = payments.length || 1;
@@ -186,10 +188,10 @@ export const AdminDashboardPage = () => {
       if (topSortBy === 'revenue') {
         const revA = payments
           .filter((p) => p.courseTitle === a.title && p.status === 'Completed')
-          .reduce((sum, p) => sum + p.amount, 0);
+          .reduce((sum, p) => sum + (p.amount || 0), 0);
         const revB = payments
           .filter((p) => p.courseTitle === b.title && p.status === 'Completed')
-          .reduce((sum, p) => sum + p.amount, 0);
+          .reduce((sum, p) => sum + (p.amount || 0), 0);
         return revB - revA || b.price - a.price;
       }
       if (topSortBy === 'students') return b.studentsCount - a.studentsCount;
@@ -200,11 +202,16 @@ export const AdminDashboardPage = () => {
   // Filtered recent activity list
   const recentTransactions = useMemo(() => {
     return payments.filter((p) => {
+      const userStr = p.user || p.user_name || '';
+      const titleStr = p.courseTitle || p.course_title || '';
+      const idStr = p.id || '';
+      const statusStr = p.status || '';
+
       const matchesSearch =
-        p.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.courseTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.id.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || p.status.toLowerCase() === statusFilter.toLowerCase();
+        userStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        titleStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        idStr.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || statusStr.toLowerCase() === statusFilter.toLowerCase();
       return matchesSearch && matchesStatus;
     });
   }, [payments, searchQuery, statusFilter]);

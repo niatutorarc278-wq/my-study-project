@@ -9,15 +9,21 @@ export const PaymentDetailsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedReceipt, setSelectedReceipt] = useState(null);
 
-  const totalSpent = payments
+  const totalSpent = (payments || [])
     .filter(p => p.status === 'Completed')
-    .reduce((acc, curr) => acc + curr.amount, 0);
+    .reduce((acc, curr) => acc + (curr.amount || 0), 0);
 
-  const filteredPayments = payments.filter(p =>
-    p.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.courseTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.paymentMethod.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredPayments = (payments || []).filter(p => {
+    const pId = p.id || '';
+    const pTitle = p.courseTitle || p.course_title || '';
+    const pMethod = p.paymentMethod || p.payment_method || '';
+    const q = searchQuery.toLowerCase();
+    return (
+      pId.toLowerCase().includes(q) ||
+      pTitle.toLowerCase().includes(q) ||
+      pMethod.toLowerCase().includes(q)
+    );
+  });
 
   const handleDownloadReceipt = (txn) => {
     showToast(`Invoice receipt for ${txn.id} downloaded!`, 'success');

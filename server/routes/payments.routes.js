@@ -12,12 +12,13 @@ router.get('/', async (req, res) => {
       const [rows] = await pool.query('SELECT * FROM payments ORDER BY created_at DESC');
       const formatted = rows.map((r) => ({
         ...r,
-        userEmail: r.user_email,
-        courseTitle: r.course_title,
+        user: r.user_name || r.user || 'Student',
+        userEmail: r.user_email || r.userEmail || '',
+        courseTitle: r.course_title || r.courseTitle || '',
         amount: parseFloat(r.amount || 0),
         originalPrice: parseFloat(r.original_price || 0),
-        couponCode: r.coupon_code || 'None',
-        paymentMethod: r.payment_method || 'Credit Card'
+        couponCode: r.coupon_code || r.couponCode || 'None',
+        paymentMethod: r.payment_method || r.paymentMethod || 'Credit Card'
       }));
       return res.json(formatted);
     }

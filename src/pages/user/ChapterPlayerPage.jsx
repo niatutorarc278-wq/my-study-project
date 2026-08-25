@@ -24,14 +24,42 @@ export const ChapterPlayerPage = () => {
   const navigate = useNavigate();
   const { courses, completedChapters, completeChapter, isChapterUnlocked, showToast } = useApp();
 
-  const course = courses.find((c) => c.id === id) || courses[0];
+  const course = courses.find((c) => c.id === id);
+
+  useEffect(() => {
+    if (course && !course.enrolled) {
+      showToast(`🔒 Access Locked! Please purchase "${course.title}" to watch lesson videos.`, 'error');
+      navigate(`/courses/${course.id}`, { replace: true });
+    } else if (!course && courses.length > 0) {
+      showToast('🔒 Course not found!', 'error');
+      navigate('/courses', { replace: true });
+    }
+  }, [course, courses, navigate, showToast]);
+
+  if (!course || !course.enrolled) {
+    return (
+      <div className="min-h-[400px] flex flex-col items-center justify-center p-8 rounded-3xl bg-slate-900 text-white space-y-4 border border-slate-800 text-center animate-fade-in">
+        <ShieldAlert className="w-16 h-16 text-rose-500 animate-bounce" />
+        <h2 className="text-xl font-black">🔒 Course Video Player Locked</h2>
+        <p className="text-xs text-slate-400 max-w-md">
+          You have not purchased this course yet. Complete your purchase to gain instant lifetime access to all video lessons and downloadable resources!
+        </p>
+        <button
+          onClick={() => navigate(`/courses/${course?.id || ''}`)}
+          className="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-extrabold text-xs shadow-lg hover:scale-105 transition-all"
+        >
+          View Course Details & Buy Access ➔
+        </button>
+      </div>
+    );
+  }
 
   // Helper to standardize units & chapters structure
   const units = course.units || (course.curriculum ? course.curriculum.map((sec, idx) => ({
     id: `unit-${idx + 1}`,
     unitNumber: idx + 1,
     title: sec.section,
-    chapters: sec.lessons.map((les, lIdx) => ({
+    chapters: (sec.lessons || []).map((les, lIdx) => ({
       id: `${course.id}-u${idx + 1}-ch${lIdx + 1}`,
       title: `Chapter ${lIdx + 1}: ${les}`,
       duration: '12:30',

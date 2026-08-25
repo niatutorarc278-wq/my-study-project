@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 
 export const UserDashboardPage = () => {
-  const { currentUser, courses, completedChapters, coupons } = useApp();
+  const { currentUser, courses, completedChapters, coupons, getCourseProgress } = useApp();
   const navigate = useNavigate();
 
   const enrolledCourses = courses.filter((c) => c.enrolled);
@@ -35,7 +35,7 @@ export const UserDashboardPage = () => {
 
   // Active course (most recently accessed or first enrolled)
   const activeCourse = enrolledCourses[0] || courses[0];
-  const activeCourseProgress = activeCourse?.progress || 35;
+  const activeCourseProgress = getCourseProgress(activeCourse);
 
   return (
     <div className="space-y-8 animate-fade-in pb-12">
@@ -249,7 +249,7 @@ export const UserDashboardPage = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {enrolledCourses.map((c) => {
-            const progress = c.progress || 30;
+            const progress = getCourseProgress(c);
             return (
               <div
                 key={c.id}

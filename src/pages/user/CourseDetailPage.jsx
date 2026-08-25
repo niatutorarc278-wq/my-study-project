@@ -26,7 +26,7 @@ import {
 
 export const CourseDetailPage = () => {
   const { id } = useParams();
-  const { courses, showToast, completedChapters, isChapterUnlocked } = useApp();
+  const { courses, showToast, completedChapters, isChapterUnlocked, getCourseProgress } = useApp();
   const navigate = useNavigate();
   const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('curriculum'); // 'curriculum' | 'overview' | 'instructor' | 'reviews'
@@ -60,6 +60,11 @@ export const CourseDetailPage = () => {
   };
 
   const handleSelectChapter = (chap) => {
+    if (!course.enrolled) {
+      showToast(`🔒 Course Locked! Please purchase "${course.title}" to unlock video lessons.`, 'error');
+      setIsBuyModalOpen(true);
+      return;
+    }
     const unlocked = isChapterUnlocked(course, chap.id);
     if (!unlocked) {
       const idx = allChapters.findIndex((c) => c.id === chap.id);
@@ -75,7 +80,7 @@ export const CourseDetailPage = () => {
 
   const totalChaptersCount = allChapters.length;
   const completedCount = courseCompletedList.length;
-  const progressPercent = totalChaptersCount > 0 ? Math.round((completedCount / totalChaptersCount) * 100) : 0;
+  const progressPercent = getCourseProgress(course);
   const previewEmbedUrl = getYouTubeEmbedUrl(course.youtubeUrl);
 
   return (
